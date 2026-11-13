@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Time & Games Hub</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.25), transparent 40%),
+      radial-gradient(circle at 80% 10%, rgba(168, 85, 247, 0.25), transparent 40%),
+      linear-gradient(135deg, #05070d, #0f172a, #111827);
+    color: #e5e7eb;
+    overflow-x: hidden;
+  }
+
+  /* 顶部实时时间 */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 32px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  .brand {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #38bdf8, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .clock-box {
+    text-align: right;
+  }
+
+  .time {
+    font-size: 28px;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: 3px;
+    text-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+  }
+
+  .date {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+
+  /* 主体布局 */
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  .hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    background: linear-gradient(90deg, #38bdf8, #a855f7, #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 14px;
+  }
+
+  .hero p {
+    color: #94a3b8;
+    font-size: 16px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 40px;
+  }
+
+  .card {
+    background: rgba(30, 41, 59, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 22px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.6);
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(56, 189, 248, 0.45);
+  }
+
+  .card-title {
+    font-size: 20px;
+    margin-bottom: 14px;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 12px #38bdf8;
+  }
+
+  /* 游戏区域 */
+  .game-area {
+    background: #0b1220;
+    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  /* 猜数字 */
+  .guess-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: #111827;
+    color: #f8fafc;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2563eb, #9333ea);
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+
+  .btn:hover { transform: scale(1.04); }
+
+  .msg {
+    margin-top: 12px;
+    min-height: 24px;
+    color: #cbd5e1;
+    font-size: 14px;
+  }
+
+  /* 反应游戏 */
+  .target {
+    width: 100%;
+    height: 180px;
+    border-radius: 14px;
+    background: radial-gradient(circle at 30% 30%, #334155, #0b1220);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 15px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .target.ready { background: radial-gradient(circle at 30% 30%, #dc2626, #7f1d1d); color: #fee2e2; }
+  .target.go { background: radial-gradient(circle at 30% 30%, #22c55e, #14532d); color: #dcfce7; }
+
+  .result {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #cbd5e1;
+  }
+
+  /* 2048 简化版 */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: #0b1220;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .cell {
+    aspect-ratio: 1 / 1;
+    background: #111827;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #f8fafc;
+  }
+
+  .n2 { background: #38bdf8; }
+  .n4 { background: #a855f7; }
+  .n8 { background: #f59e0b; }
+  .n16 { background: #ef4444; }
+  .n32 { background: #ec4899; }
+  .n64 { background: #14b8a6; }
+  .n128 { background: #8b5cf6; }
+  .n256 { background: #f97316; }
+  .n512 { background: #eab308; }
+  .n1024 { background: #22c55e; }
+  .n2048 { background: #fde047; color: #111827; }
+
+  .ctrl-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .score {
+    margin-top: 10px;
+    color: #cbd5e1;
+    font-size: 14px;
+  }
+
+  /* 底部 */
+  .footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 60px;
+    padding-bottom: 30px;
+  }
+
+  @media (max-width: 640px) {
+    .topbar { padding: 14px 18px; }
+    .time { font-size: 22px; }
+    .hero { padding: 40px 14px 20px; }
+  }
+</style>
+</head>
+
+<body>
+  <!-- 顶部实时时间 -->
+  <header class="topbar">
+    <div class="brand">TIME &amp; GAMES HUB</div>
+    <div class="clock-box">
+      <div class="time" id="time">00:00:00</div>
+      <div class="date" id="date">----年--月--日 周-</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <h1>实时时间 · 趣味游戏</h1>
+      <p>顶部显示当前时间、年、月、日，下面可以玩猜数字、反应速度和简化版 2048。</p>
+    </section>
+
+    <div class="grid">
+
+      <!-- 猜数字 -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>猜数字</div>
+        <div class="game-area">
+          <p style="font-size:14px;color:#94a3b8;margin-bottom:10px;">系统想了一个 1–100 的数字，试试猜对它！</p>
+          <input type="number" class="guess-input" id="guessInput" placeholder="输入你的猜测" min="1" max="100" />
+          <button class="btn" onclick="guessNumber()">猜一下</button>
+          <button class="btn" style="background:linear-gradient(135deg,#475569,#64748b);" onclick="resetGuess()">重新开始</button>
+          <div class="msg" id="guessMsg"></div>
+        </div>
+      </div>
+
+      <!-- 反应速度 -->
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#22c55e;box-shadow:0 0 12px #22c55e;"></span>反应速度</div>
+        <div class="game-area">
+          <p style="font-size:14px;color:#94a3b8;margin-bottom:10px;">点击开始，等背景变绿后尽快点击！</p>
+          <div class="target" id="target" onclick="reactClick()">点击开始</div>
+          <div class="result" id="reactResult">最快记录：-- ms</div>
+        </div>
+      </div>
+
+      <!-- 简化版 2048 -->
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#f59e0b;box-shadow:0 0 12px #f59e0b;"></span>简化版 2048</div>
+        <div class="game-area">
+          <p style="font-size:14px;color:#94a3b8;margin-bottom:10px;">使用方向键或下面按钮移动相同数字，合成更大数字。</p>
+          <div class="board" id="board"></div>
+          <div class="ctrl-row">
+            <button class="btn" onclick="move2048('left')">← 左</button>
+            <button class="btn" onclick="move2048('right')">右 →</button>
+            <button class="btn" onclick="move2048('up')">↑ 上</button>
+            <button class="btn" onclick="move2048('down')">下 ↓</button>
+          </div>
+          <div class="score">得分：<span id="score2048">0</span></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    实时时间每秒自动更新 · 小游戏全部在浏览器本地运行
+  </footer>
+
+<script>
+  // ========== 实时时间 ==========
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const weeks = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    document.getElementById('time').textContent = `${h}:${m}:${s}`;
+    document.getElementById('date').textContent = `${year}年${month}月${day}日 ${weeks[now.getDay()]}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ========== 猜数字 ==========
+  let secret = Math.floor(Math.random() * 100) + 1;
+  let guessCount = 0;
+
+  function guessNumber() {
+    const input = document.getElementById('guessInput');
+    const msg = document.getElementById('guessMsg');
+    const val = parseInt(input.value);
+    if (!val || val < 1 || val > 100) {
+      msg.textContent = '请输入 1–100 之间的数字';
+      return;
+    }
+    guessCount++;
+    if (val === secret) {
+      msg.textContent = `🎉 猜对了！答案就是 ${secret}，共用了 ${guessCount} 次。`;
+    } else if (val < secret) {
+      msg.textContent = `小了，继续加油！已猜 ${guessCount} 次`;
+    } else {
+      msg.textContent = `大了，继续加油！已猜 ${guessCount} 次`;
+    }
+  }
+
+  function resetGuess() {
+    secret = Math.floor(Math.random() * 100) + 1;
+    guessCount = 0;
+    document.getElementById('guessInput').value = '';
+    document.getElementById('guessMsg').textContent = '游戏已重置，来猜一个数字吧！';
+  }
+
+  // ========== 反应速度 ==========
+  let reactState = 'idle';
+  let startTime = 0;
+  let bestTime = localStorage.getItem('bestReact') || null;
+
+  function reactClick() {
+    const target = document.getElementById('target');
+    const result = document.getElementById('reactResult');
+
+    if (reactState === 'idle') {
+      target.textContent = '等待绿色出现...';
+      target.classList.add('ready');
+      target.classList.remove('go');
+      reactState = 'waiting';
+      const delay = 2000 + Math.random() * 3000;
+      setTimeout(() => {
+        if (reactState === 'waiting') {
+          target.textContent = '快点我！';
+          target.classList.remove('ready');
+          target.classList.add('go');
+          startTime = Date.now();
+          reactState = 'go';
+        }
+      }, delay);
+    } else if (reactState === 'waiting') {
+      target.textContent = '太早了！重新开始';
+      target.classList.remove('go', 'ready');
+      reactState = 'idle';
+    } else if (reactState === 'go') {
+      const spent = Date.now() - startTime;
+      result.textContent = `本次反应：${spent} ms`;
+      if (!bestTime || spent < parseInt(bestTime)) {
+        bestTime = spent;
+        localStorage.setItem('bestReact', bestTime);
+        result.textContent += ` ｜ 新纪录！`;
+      }
+      target.textContent = '点击再来一次';
+      target.classList.remove('go');
+      reactState = 'idle';
+    }
+  }
+
+  if (bestTime) {
+    document.getElementById('reactResult').textContent = `最快记录：${bestTime} ms`;
+  }
+
+  // ========== 简化版 2048 ==========
+  let board2048 = [];
+  let score2048 = 0;
+
+  function init2048() {
+    board2048 = Array.from({ length: 4 }, () => Array(4).fill(0));
+    score2048 = 0;
+    addRandom2048();
+    addRandom2048();
+    render2048();
+  }
+
+  function addRandom2048() {
+    const empty = [];
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        if (board2048[r][c] === 0) empty.push([r, c]);
+      }
+    }
+    if (empty.length) {
+      const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+      board2048[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+  }
+
+  function render2048() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const v = board2048[r][c];
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (v ? ' n' + v : '');
+        cell.textContent = v || '';
+        board.appendChild(cell);
+      }
+    }
+    document.getElementById('score2048').textContent = score2048;
+  }
+
+  function slideRow(row) {
+    let arr = row.filter(v => v !== 0);
+    for (let i = 0; i < arr.length - 1; i++) {
+      if (arr[i] === arr[i + 1]) {
+        arr[i] *= 2;
+        score2048 += arr[i];
+        arr[i + 1] = 0;
+      }
+    }
+    arr = arr.filter(v => v !== 0);
+    while (arr.length < 4) arr.push(0);
+    return arr;
+  }
+
+  function move2048(dir) {
+    if (dir === 'left') {
+      for (let r = 0; r < 4; r++) board2048[r] = slideRow(board2048[r]);
+    } else if (dir === 'right') {
+      for (let r = 0; r < 4; r++) board2048[r] = slideRow(board2048[r].slice().reverse()).reverse();
+    } else if (dir === 'up') {
+      for (let c = 0; c < 4; c++) {
+        const col = [board2048[0][c], board2048[1][c], board2048[2][c], board2048[3][c]];
+        const newCol = slideRow(col);
+        for (let r = 0; r < 4; r++) board2048[r][c] = newCol[r];
+      }
+    } else if (dir === 'down') {
+      for (let c = 0; c < 4; c++) {
+        const col = [board2048[0][c], board2048[1][c], board2048[2][c], board2048[3][c]];
+        const newCol = slideRow(col.slice().reverse()).reverse();
+        for (let r = 0; r < 4; r++) board2048[r][c] = newCol[r];
+      }
+    }
+    addRandom2048();
+    render2048();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault();
+      if (e.key === 'ArrowLeft') move2048('left');
+      if (e.key === 'ArrowRight') move2048('right');
+      if (e.key === 'ArrowUp') move2048('up');
+      if (e.key === 'ArrowDown') move2048('down');
+    }
+  });
+
+  init2048();
+</script>
+</body>
+</html>
